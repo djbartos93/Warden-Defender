@@ -1,4 +1,35 @@
+#include <Dhcp.h>
+#include <Dns.h>
+#include <Ethernet.h>
+#include <EthernetClient.h>
+#include <EthernetServer.h>
+#include <EthernetUdp.h>
+#include <SPI.h>
 /*
+ * ethernet contoller steup! we will eventually DHCP for getting an IP address, for testing I will be using manual IP
+ * See best practices in setting up to get things working right with the server and knowing what readers are where
+ */
+
+//IP manual settings
+//uncomment this for testing or if you really feel like using a manual IP
+byte ip[] = { 10, 0, 1, 100 };
+byte gateway[] = { 10, 0, 1, 1 };
+byte subnet[] = { 255, 255, 0, 0 };
+
+//if you need to change the MAC address do this (replace with mac of your sheild)
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xEF, 0xDE };
+
+//HTTP Port (Default at 80) may change at some point for "security"
+EthernetServer server = EthernetServer(80);
+
+//Number of outputs to switch (number of doors on controller)
+int strikeQuantity = 1;
+
+//pin starting from
+int outputLowest = 8;
+
+/*
+ * The following has been adapted from: 
  * HID RFID Reader Wiegand Interface for Arduino Uno
  * Written by Daniel Smith, 2012.01.30
  * www.pagemac.com 
@@ -10,7 +41,7 @@
 #define doorPin 5
 #define redPin  6
 #define beepPin 7
-#define greenPin 8 
+#define greenPin 4 
 #define MAX_BITS 100                 // max number of bits 
 #define WEIGAND_WAIT_TIME  3000      // time to wait for another weigand pulse.  
  
@@ -44,7 +75,7 @@ void ISR_INT1()
  
 void setup()
 {
-  pinMode(8, OUTPUT);  // LED
+  pinMode(4, OUTPUT);  // LED
   pinMode(2, INPUT);     // DATA0 (INT0)
   pinMode(3, INPUT);     // DATA1 (INT1)
  
@@ -56,6 +87,10 @@ void setup()
   attachInterrupt(1, ISR_INT1, FALLING);
   //connect to door strike realy (update this eventually with relay pin, or define it)
   pinMode(doorPin, OUTPUT);
+  Ethernet.begin(mac, ip, gateway, subnet);
+  server.begin();
+  Serial.print("Defender is at ");
+  Serial.println(Ethernet.localIP());
  
  
   weigand_counter = WEIGAND_WAIT_TIME;
