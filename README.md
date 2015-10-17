@@ -12,8 +12,9 @@ The system will send a request to the server to ask for access, if the card ID m
  - [ ] Electronic Strike interface
  - [ ] Network Interface
 - Hardware
- - [ ] Design custom reader/strike interface board
- - [ ] POE Compatable somehow
+ - [X] Design custom reader/strike interface board (V1 done, ordering to test soon)
+ - [ ] ~~POE Compatable somehow~~
+ - [ ] Power supply possible 3rd vreg for arduino?
  - [ ] Get custom board printed for testing
 - Software
  - [ ] Network connectivity to server
