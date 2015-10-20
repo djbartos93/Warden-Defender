@@ -1,9 +1,5 @@
-#include <Dhcp.h>
-#include <Dns.h>
+
 #include <Ethernet.h>
-#include <EthernetClient.h>
-#include <EthernetServer.h>
-#include <EthernetUdp.h>
 #include <SPI.h>
 /*
  * ethernet contoller steup! we will eventually DHCP for getting an IP address, for testing I will be using manual IP
@@ -12,16 +8,16 @@
 
 //IP manual settings
 //uncomment this for testing or if you really feel like using a manual IP
-byte ip[] = { 10, 0, 1, 100 };
-byte gateway[] = { 10, 0, 1, 1 };
-byte subnet[] = { 255, 255, 0, 0 };
+byte ip[] = { 192, 168, 1, 120 };
+byte gateway[] = { 192, 168, 1, 1 };
+byte subnet[] = { 255, 255, 255, 0 };
 
 //if you need to change the MAC address do this (replace with mac of your sheild)
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xEF, 0xDE };
 
 //HTTP Port (Default at 80) may change at some point for "security"
 EthernetServer server = EthernetServer(80);
-
+EthernetClient client;
 //Number of outputs to switch (number of doors on controller)
 int strikeQuantity = 1;
 
@@ -78,6 +74,9 @@ void setup()
   pinMode(4, OUTPUT);  // LED
   pinMode(2, INPUT);     // DATA0 (INT0)
   pinMode(3, INPUT);     // DATA1 (INT1)
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, OUTPUT);
  
   Serial.begin(9600);
   Serial.println("RFID Readers");
@@ -91,12 +90,14 @@ void setup()
   server.begin();
   Serial.print("Defender is at ");
   Serial.println(Ethernet.localIP());
+  webInterface();
  
  
   weigand_counter = WEIGAND_WAIT_TIME;
 }
  
 void loop()
+
 {
   // This waits to make sure that there have been no more data pulses before processing data
   if (!flagDone) {
@@ -107,7 +108,6 @@ void loop()
   // if we have bits and we the weigand counter went out
   if (bitCount > 0 && flagDone) {
     unsigned char i;
- 
     Serial.print("Read ");
     Serial.print(bitCount);
     Serial.print(" bits. ");
@@ -132,6 +132,7 @@ void loop()
       }
  
       printBits();
+      webInterface();
     }
     else if (bitCount == 26)
     {
@@ -150,17 +151,20 @@ void loop()
          cardCode |= databits[i];
       }
  
-      printBits();  
+      printBits();
+      webInterface();
     }
     else {
       // you can add other formats if you want!
      Serial.println("Unable to decode."); 
+     webInterface();
+     failed();
     }
  
      // cleanup and get ready for the next card
      bitCount = 0;
      facilityCode = 0;
-     cardCode = 0;
+     cardCode = 034234234234234234;
      for (i=0; i<MAX_BITS; i++) 
      {
        databits[i] = 0;
@@ -174,13 +178,14 @@ void printBits()
       Serial.print("FC = ");
       Serial.print(facilityCode);
       Serial.print(", CC = ");
-      Serial.println(cardCode); 
+      Serial.println(cardCode);
+      void openDoor(); 
 }
 
 // Opens door and turns on the green LED for setDelay seconds + 2 short beeps 
 void openDoor( int setDelay )
 {
-  setDelay *= 1000; // Sets delay in seconds
+  setDelay *= 10000; // Sets delay in seconds
 
   digitalWrite(doorPin, HIGH);  // Unlock door!
   
@@ -196,7 +201,7 @@ void openDoor( int setDelay )
   delay(200);
   digitalWrite(greenPin, LOW);//stop LED flash
   digitalWrite(beepPin, LOW); //stop beep
-  
+  delay(1000);
   digitalWrite(doorPin, LOW); // Relock door
 }
 
@@ -206,8 +211,6 @@ void failed()
      
   // Blink red fail LED 3 times to indicate failed key
   digitalWrite(beepPin, HIGH); //start beep
-  delay(1000);
-  digitalWrite(beepPin, LOW); //stop beep
   digitalWrite(redPin, HIGH);  // Turn on red LED
   delay(500);
   digitalWrite(redPin, LOW);   // Turn off red LED
@@ -215,9 +218,22 @@ void failed()
   digitalWrite(redPin, HIGH);  // Turn on red LED
   delay(500);
   digitalWrite(redPin, LOW);   // Turn off red LED
-      
+  digitalWrite(beepPin, LOW); //stop beep    
   digitalWrite(redPin, HIGH);  // Turn on red LED
   delay(500);
   digitalWrite(redPin, LOW);   // Turn off red LED
+}
+
+//this is the functino for the web interface, it is called in the loop.
+void webInterface(){
+if (client.connect("www.*****.*************.com",80)) { // REPLACE WITH YOUR SERVER ADDRESS
+    client.println("POST /add.php HTTP/1.1"); 
+    client.println("Host: *****.*************.com"); // SERVER ADDRESS HERE TOO
+    client.println("Content-Type: application/x-www-form-urlencoded"); 
+    client.print("Content-Length: "); 
+    client.println(cardCode); 
+    client.println(); 
+    client.print(cardCode); 
+  } 
 }
 
